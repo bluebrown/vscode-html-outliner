@@ -11,8 +11,7 @@
 	],
 	"activationEvents": [
 		"onCommand:outliner.outline",
-		"onLanguage:html",
-		"onView:documentOutline"
+		"onLanguage:html"
 	],
 	"main": "./out/extension.js",
 	"contributes": {

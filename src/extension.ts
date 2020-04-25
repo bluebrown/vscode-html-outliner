@@ -4,29 +4,13 @@ const jsdom = require("jsdom");
 const { JSDOM } = jsdom;
 
 
-export class OutlineProvider
-	implements vscode.TreeDataProvider<vscode.TreeItem> {
-
-	constructor(private outline: any) { }
-
-	getTreeItem({ heading, sections, startingNode }: any): vscode.TreeItem {
-		let label = startingNode?.getAttribute('aria-label');
-		// labelledBy  = startingNode?.getAttribute('aria-labelledBy');
-		return new OutlineNode(
-			heading?.textContent
-			|| label
-			|| 'Untitled Section',
-			sections?.length > 0
-				? vscode.TreeItemCollapsibleState.Expanded
-				: vscode.TreeItemCollapsibleState.None,
-			startingNode.tagName.concat(label ? ' (aria label)' : ''),
-		);	}
-
-	getChildren(element?: any): Thenable<[]> {
-		return element && Promise.resolve(element.sections) || Promise.resolve(this.outline);
-	}
+interface OutlineNode {
+	startingNode: Element
+	heading?: Element
+	sections?: OutlineNode[]
 }
-class OutlineNode extends vscode.TreeItem {
+
+class OutlineTreeItem extends vscode.TreeItem {
 	constructor(
 		public readonly label: string,
 		public readonly collapsibleState: vscode.TreeItemCollapsibleState,
@@ -39,24 +23,61 @@ class OutlineNode extends vscode.TreeItem {
 	}
 }
 
+export class OutlineProvider
+	implements vscode.TreeDataProvider<OutlineNode> {
+
+	constructor(private outline: OutlineNode[]) {}
+	
+	getTreeItem({ heading, sections, startingNode }: OutlineNode): vscode.TreeItem {
+		let label = startingNode?.getAttribute('aria-label');
+		// labelledBy  = startingNode?.getAttribute('aria-labelledBy');
+		return new OutlineTreeItem(
+			heading?.textContent
+			|| label
+			|| 'Untitled Section',
+			(sections?.length ?? 0) > 0
+				? vscode.TreeItemCollapsibleState.Expanded
+				: vscode.TreeItemCollapsibleState.None,
+			startingNode.tagName.concat(label ? ' (aria label)' : ''),
+		);
+	}
+
+	getChildren(element?: OutlineNode): Thenable<OutlineNode[]> {
+		return element && Promise.resolve(element.sections ?? [])
+			|| Promise.resolve(this.outline);
+	}
+}
 
 export function activate(context: vscode.ExtensionContext) {
-	let disposable = vscode.commands.registerCommand(
+
+	context.subscriptions.push(vscode.commands.registerCommand(
 		"outliner.outline",
 		async () => {
-			const currentEditor = vscode.window.activeTextEditor;
-			if (currentEditor?.document?.languageId === 'html') {
-				const dom = new JSDOM(currentEditor.document.getText());
-				const outline = HTML5Outline(dom.window.document.body);
+			const editor = vscode.window.activeTextEditor;
+			if (!editor || editor.document.languageId !== 'html') {return;};
+			const dom = new JSDOM(editor.document.getText());
+			const outline = HTML5Outline(dom.window.document.body);
+			let outlineProvider = new OutlineProvider(outline.sections);
 				vscode.window.createTreeView('documentOutline', {
-					treeDataProvider: new OutlineProvider(outline.sections)
+					treeDataProvider: outlineProvider
 				});
-			}
 		}
-	);
+	));
 
-	context.subscriptions.push(disposable);
+	vscode.commands.executeCommand("outliner.outline");
 
+	vscode.window.onDidChangeActiveTextEditor(() => {
+		vscode.commands.executeCommand("outliner.outline");
+	});
+
+	vscode.workspace.onDidSaveTextDocument(() => {
+		vscode.commands.executeCommand("outliner.outline");
+	});
+
+	
+	vscode.workspace.onDidChangeTextDocument(() => {
+		vscode.commands.executeCommand("outliner.outline");
+	});
 
 }
 
