@@ -26,8 +26,20 @@ class OutlineTreeItem extends vscode.TreeItem {
 export class OutlineProvider
 	implements vscode.TreeDataProvider<OutlineNode> {
 
-	constructor(private outline: OutlineNode[]) {}
-	
+	constructor() { }
+
+	private get outline(): OutlineNode[] {
+		const editor = vscode.window.activeTextEditor;
+		if (!editor || editor.document.languageId !== 'html') { return []; };
+		try {
+			const dom = new JSDOM(editor.document.getText());
+			const outline = HTML5Outline(dom.window.document.body);
+			return outline.sections;
+		} catch (err) {
+			return [];
+		}
+	};
+
 	getTreeItem({ heading, sections, startingNode }: OutlineNode): vscode.TreeItem {
 		let label = startingNode?.getAttribute('aria-label');
 		// labelledBy  = startingNode?.getAttribute('aria-labelledBy');
@@ -46,22 +58,32 @@ export class OutlineProvider
 		return element && Promise.resolve(element.sections ?? [])
 			|| Promise.resolve(this.outline);
 	}
+
+  private _onDidChangeTreeData: vscode.EventEmitter<OutlineNode | undefined> = new vscode.EventEmitter<OutlineNode | undefined>();
+  readonly onDidChangeTreeData: vscode.Event<OutlineNode | undefined> = this._onDidChangeTreeData.event;
+
+  refresh(): void {
+    this._onDidChangeTreeData.fire();
+  }
+
 }
 
-export function activate(context: vscode.ExtensionContext) {
 
+export function activate(context: vscode.ExtensionContext) {
+	let outlineProvider: OutlineProvider;
 	context.subscriptions.push(vscode.commands.registerCommand(
 		"outliner.outline",
 		async () => {
-			const editor = vscode.window.activeTextEditor;
-			if (!editor || editor.document.languageId !== 'html') {return;};
-			const dom = new JSDOM(editor.document.getText());
-			const outline = HTML5Outline(dom.window.document.body);
-			let outlineProvider = new OutlineProvider(outline.sections);
-				vscode.window.createTreeView('documentOutline', {
-					treeDataProvider: outlineProvider
-				});
+			outlineProvider = new OutlineProvider();
+			vscode.window.createTreeView('documentOutline', {
+				treeDataProvider: outlineProvider
+			});
 		}
+	));
+
+	context.subscriptions.push(vscode.commands.registerCommand(
+		"outliner.refresh",
+		() => { outlineProvider.refresh(); }
 	));
 
 	vscode.commands.executeCommand("outliner.outline");
@@ -74,9 +96,8 @@ export function activate(context: vscode.ExtensionContext) {
 		vscode.commands.executeCommand("outliner.outline");
 	});
 
-	
 	vscode.workspace.onDidChangeTextDocument(() => {
-		vscode.commands.executeCommand("outliner.outline");
+		vscode.commands.executeCommand("outliner.refresh");
 	});
 
 }
