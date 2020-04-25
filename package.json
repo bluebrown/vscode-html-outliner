@@ -10,22 +10,10 @@
 		"Other"
 	],
 	"activationEvents": [
-		"onCommand:outliner.outline",
 		"onLanguage:html"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
-		"commands": [
-			{
-				"command": "outliner.outline",
-				"title": "Outline",
-				"when": "editorLangId == html"
-			},
-			{
-				"command": "outliner.refresh",
-				"title": "Refresh"
-			}
-		],
 		"views": {
       "explorer": [
         {

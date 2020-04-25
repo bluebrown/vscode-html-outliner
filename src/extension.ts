@@ -59,48 +59,32 @@ export class OutlineProvider
 			|| Promise.resolve(this.outline);
 	}
 
-  private _onDidChangeTreeData: vscode.EventEmitter<OutlineNode | undefined> = new vscode.EventEmitter<OutlineNode | undefined>();
-  readonly onDidChangeTreeData: vscode.Event<OutlineNode | undefined> = this._onDidChangeTreeData.event;
+	private _onDidChangeTreeData: vscode.EventEmitter<OutlineNode | undefined> = new vscode.EventEmitter<OutlineNode | undefined>();
+	readonly onDidChangeTreeData: vscode.Event<OutlineNode | undefined> = this._onDidChangeTreeData.event;
 
-  refresh(): void {
-    this._onDidChangeTreeData.fire();
-  }
+	refresh(): void {
+		this._onDidChangeTreeData.fire();
+	}
 
 }
 
 
 export function activate(context: vscode.ExtensionContext) {
-	let outlineProvider: OutlineProvider;
 
-	context.subscriptions.push(vscode.commands.registerCommand(
-		"outliner.outline",
-		 () => {
-			outlineProvider = new OutlineProvider();
-			vscode.window.createTreeView('documentOutline', {
-				treeDataProvider: outlineProvider
-			});
-		}
-	));
+	const outlineProvider = new OutlineProvider();
 
-	context.subscriptions.push(vscode.commands.registerCommand(
-		"outliner.refresh",
-		() => { outlineProvider.refresh(); }
-	));
-
-	vscode.commands.executeCommand("outliner.outline");
-
-	vscode.window.onDidChangeActiveTextEditor(() => {
-		vscode.commands.executeCommand("outliner.refresh");
+	vscode.window.createTreeView('documentOutline', {
+		treeDataProvider: outlineProvider
 	});
 
-	vscode.workspace.onDidSaveTextDocument(() => {
-		vscode.commands.executeCommand("outliner.refresh");
-	});
-	
+	vscode.window.onDidChangeActiveTextEditor(() => outlineProvider.refresh());
+
+	vscode.workspace.onDidSaveTextDocument(() => outlineProvider.refresh());
+
 	let debouncer: NodeJS.Timeout;
 	vscode.workspace.onDidChangeTextDocument(() => {
 		clearTimeout(debouncer);
-		debouncer = setTimeout(() => vscode.commands.executeCommand("outliner.refresh"), 2000);
+		debouncer = setTimeout(() => outlineProvider.refresh(), 2000);
 	});
 
 }
