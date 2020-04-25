@@ -71,9 +71,10 @@ export class OutlineProvider
 
 export function activate(context: vscode.ExtensionContext) {
 	let outlineProvider: OutlineProvider;
+
 	context.subscriptions.push(vscode.commands.registerCommand(
 		"outliner.outline",
-		async () => {
+		 () => {
 			outlineProvider = new OutlineProvider();
 			vscode.window.createTreeView('documentOutline', {
 				treeDataProvider: outlineProvider
@@ -89,15 +90,17 @@ export function activate(context: vscode.ExtensionContext) {
 	vscode.commands.executeCommand("outliner.outline");
 
 	vscode.window.onDidChangeActiveTextEditor(() => {
-		vscode.commands.executeCommand("outliner.outline");
+		vscode.commands.executeCommand("outliner.refresh");
 	});
 
 	vscode.workspace.onDidSaveTextDocument(() => {
-		vscode.commands.executeCommand("outliner.outline");
-	});
-
-	vscode.workspace.onDidChangeTextDocument(() => {
 		vscode.commands.executeCommand("outliner.refresh");
+	});
+	
+	let debouncer: NodeJS.Timeout;
+	vscode.workspace.onDidChangeTextDocument(() => {
+		clearTimeout(debouncer);
+		debouncer = setTimeout(() => vscode.commands.executeCommand("outliner.refresh"), 2000);
 	});
 
 }

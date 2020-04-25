@@ -23,7 +23,7 @@
 			},
 			{
 				"command": "outliner.refresh",
-        "title": "Refresh"
+				"title": "Refresh"
 			}
 		],
 		"views": {
