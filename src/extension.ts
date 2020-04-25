@@ -6,18 +6,20 @@ const { JSDOM } = jsdom;
 
 export class OutlineProvider
 	implements vscode.TreeDataProvider<vscode.TreeItem> {
+
 	constructor(private outline: any) { }
 
 	getTreeItem({ heading, sections, startingNode }: any): vscode.TreeItem {
 		let label = startingNode?.getAttribute('aria-label');
+		// labelledBy  = startingNode?.getAttribute('aria-labelledBy');
 		return new OutlineNode(
 			heading?.textContent
-			|| label && label + ' (aria-label)'
+			|| label
 			|| 'Untitled Section',
 			sections?.length > 0
 				? vscode.TreeItemCollapsibleState.Expanded
 				: vscode.TreeItemCollapsibleState.None,
-			startingNode.tagName,
+			startingNode.tagName.concat(label ? ' (aria label)' : ''),
 		);	}
 
 	getChildren(element?: any): Thenable<[]> {
@@ -28,7 +30,7 @@ class OutlineNode extends vscode.TreeItem {
 	constructor(
 		public readonly label: string,
 		public readonly collapsibleState: vscode.TreeItemCollapsibleState,
-		public readonly tagName: string,
+		private tagName: string,
 	) {
 		super(label, collapsibleState);
 	}
@@ -39,7 +41,6 @@ class OutlineNode extends vscode.TreeItem {
 
 
 export function activate(context: vscode.ExtensionContext) {
-
 	let disposable = vscode.commands.registerCommand(
 		"outliner.outline",
 		async () => {
