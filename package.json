@@ -2,6 +2,8 @@
 	"name": "outliner",
 	"displayName": "outliner",
 	"description": "outline html docs like the browser",
+	"publisher": "codingsafari",
+	"repository": "https://github.com/bluebrown/vscode-html-outliner",
 	"version": "0.0.1",
 	"engines": {
 		"vscode": "^1.44.0"
@@ -18,7 +20,8 @@
       "explorer": [
         {
           "id": "documentOutline",
-          "name": "Document Outline"
+		  "name": "Document Outline",
+		  "when": "is-html-file"
         }
       ]
     }
